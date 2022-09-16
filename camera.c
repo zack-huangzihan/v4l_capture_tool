@@ -46,7 +46,7 @@ int init_device(void)
 	//查询设备信息
 	struct v4l2_capability cap;
 	struct v4l2_fmtdesc fmt_query;
-	if (v4l2_ioctl(fd, VIDIOC_QUERYCAP, &cap) == -1)
+	if (v4l2_ioctl(fd, VIDIOC_QUERYCAP, &cap) < 0)
 	{
 		perror("VIDIOC_QUERYCAP");
 		return -1;
@@ -84,20 +84,20 @@ int init_device(void)
        	CLEAN(fmt);
         fmt.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
         if (height_arg == 0 || width_arg == 0) {
-        	fmt.fmt.pix.width = WIDTH;
-        	fmt.fmt.pix.height = HEIGHT;	
+        	fmt.fmt.pix.width = 640;
+        	fmt.fmt.pix.height = 320;	
         }else {
         	fmt.fmt.pix.width = height_arg;
         	fmt.fmt.pix.height = width_arg;
         } 
         fmt.fmt.pix.pixelformat = v4l2_fourcc(user_fmt[0], user_fmt[1], user_fmt[2], user_fmt[3]);
-        if (v4l2_ioctl(fd, VIDIOC_S_FMT, &fmt) == -1) {
+        if (v4l2_ioctl(fd, VIDIOC_S_FMT, &fmt) < 0) {
 		    printf("VIDIOC_S_FMT IS ERROR! LINE:%d\n",__LINE__);
 		    return -1;
 		}
 		//查看帧格式
 		out_fmt.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
-		if ( v4l2_ioctl(fd, VIDIOC_G_FMT, &out_fmt) == -1){
+		if ( v4l2_ioctl(fd, VIDIOC_G_FMT, &out_fmt) < 0){
 			printf("VIDIOC_G_FMT IS ERROR! LINE:%d\n", __LINE__);
 			return -1;
 		}
@@ -126,13 +126,13 @@ int init_device(void)
         		fmt.fmt.pix.height = framesize.discrete.height;
         		fmt.fmt.pix.pixelformat = fmtdesc.pixelformat;
 
-        		if (v4l2_ioctl(fd, VIDIOC_S_FMT, &fmt) == -1) {
+        		if (v4l2_ioctl(fd, VIDIOC_S_FMT, &fmt) < 0) {
 		    		printf("VIDIOC_S_FMT IS ERROR! LINE:%d\n",__LINE__);
 		    		return -1;
 				}
 				//查看帧格式
 				out_fmt.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
-				if ( v4l2_ioctl(fd, VIDIOC_G_FMT, &out_fmt) == -1){
+				if ( v4l2_ioctl(fd, VIDIOC_G_FMT, &out_fmt) < 0){
 					printf("VIDIOC_G_FMT IS ERROR! LINE:%d\n", __LINE__);
 					return -1;
 				}
@@ -159,13 +159,13 @@ int init_device(void)
         			fmt.fmt.pix.height = width_arg;
         		}
         		fmt.fmt.pix.pixelformat = fmtdesc.pixelformat;
-        		if (v4l2_ioctl(fd, VIDIOC_S_FMT, &fmt) == -1) {
+        		if (v4l2_ioctl(fd, VIDIOC_S_FMT, &fmt) < 0) {
 		    		printf("VIDIOC_S_FMT IS ERROR! LINE:%d\n",__LINE__);
 		    		return -1;
 				}
 				//查看帧格式
 				out_fmt.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
-				if ( v4l2_ioctl(fd, VIDIOC_G_FMT, &out_fmt) == -1){
+				if ( v4l2_ioctl(fd, VIDIOC_G_FMT, &out_fmt) < 0){
 					printf("VIDIOC_G_FMT IS ERROR! LINE:%d\n", __LINE__);
 					return -1;
 				}
@@ -216,7 +216,7 @@ int init_device(void)
 		buf.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
 		buf.index = buf_index;
 		buf.memory = V4L2_MEMORY_MMAP;
-		if (v4l2_ioctl(fd, VIDIOC_QUERYBUF, &buf) == -1) //获取每个帧缓冲区的信息 如length和offset
+		if (v4l2_ioctl(fd, VIDIOC_QUERYBUF, &buf) < 0) //获取每个帧缓冲区的信息 如length和offset
 		{
 			printf("VIDIOC_QUERYBUF IS ERROR! LINE:%d\n",__LINE__);
 			return -1;
@@ -246,7 +246,7 @@ int init_device(void)
 void start_stream()
 {
 	enum v4l2_buf_type type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
-	if (v4l2_ioctl(fd, VIDIOC_STREAMON, &type) == -1){
+	if (v4l2_ioctl(fd, VIDIOC_STREAMON, &type) < 0){
 		printf("VIDIOC_STREAMON IS ERROR! LINE:%d\n", __LINE__);
 		exit(EXIT_FAILURE);
 	}
@@ -254,7 +254,7 @@ void start_stream()
 void end_stream()
 {
 	enum v4l2_buf_type type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
-	if (v4l2_ioctl(fd, VIDIOC_STREAMOFF, &type) == -1){
+	if (v4l2_ioctl(fd, VIDIOC_STREAMOFF, &type) < 0){
 		printf("VIDIOC_STREAMOFF IS ERROR! LINE:%d\n", __LINE__);
 		exit(EXIT_FAILURE);
 	}
@@ -267,7 +267,7 @@ static int read_frame()
 	CLEAN(buf);
 	buf.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
 	buf.memory = V4L2_MEMORY_MMAP;
-	if (v4l2_ioctl(fd, VIDIOC_DQBUF, &buf) == -1){
+	if (v4l2_ioctl(fd, VIDIOC_DQBUF, &buf) < 0){
 		printf("VIDIOC_DQBUF! LINEL:%d\n", __LINE__);
 		return -1;
 	}
@@ -277,7 +277,7 @@ static int read_frame()
 		printf("write is error !\n");
 		return -1;
 	}
-	if (v4l2_ioctl(fd, VIDIOC_QBUF, &buf) == -1){
+	if (v4l2_ioctl(fd, VIDIOC_QBUF, &buf) < 0){
 		printf("VIDIOC_QBUF! LINE:%d\n", __LINE__);
 		return -1;
 	}
