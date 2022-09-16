@@ -13,6 +13,7 @@ FILE * file = NULL;
 
 extern int width_arg;
 extern int height_arg;
+extern char *user_fmt;
 
 int open_device(const char * device_name)
 {
@@ -44,7 +45,7 @@ int init_device(void)
 {
 	//查询设备信息
 	struct v4l2_capability cap;
-	
+	struct v4l2_fmtdesc fmt_query;
 	if (v4l2_ioctl(fd, VIDIOC_QUERYCAP, &cap) == -1)
 	{
 		perror("VIDIOC_QUERYCAP");
@@ -61,6 +62,14 @@ int init_device(void)
 		printf("Device %s: not supports capture and streaming.\n",cap.card);
 		return -1;
 	}
+
+	printf("Device support format:\n");
+	fmt_query.index = 0;
+ 	fmt_query.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+	for(; v4l2_ioctl(fd, VIDIOC_ENUM_FMT, &fmt_query) == 0; ++fmt_query.index) {
+		printf("\t%d.%s \n",fmt_query.index+1, fmt_query.description);
+	}
+
 	// set fmt
 	struct v4l2_fmtdesc fmtdesc;
 	struct v4l2_format fmt;
@@ -69,6 +78,40 @@ int init_device(void)
 	/* Lists the pixel formats supported by the camera */
     fmtdesc.index = 0;
     fmtdesc.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+    if (user_fmt != NULL) {
+
+        printf("try format:  %s \n", user_fmt);
+       	CLEAN(fmt);
+        fmt.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+        if (height_arg == 0 || width_arg == 0) {
+        	fmt.fmt.pix.width = WIDTH;
+        	fmt.fmt.pix.height = HEIGHT;	
+        }else {
+        	fmt.fmt.pix.width = height_arg;
+        	fmt.fmt.pix.height = width_arg;
+        } 
+        fmt.fmt.pix.pixelformat = v4l2_fourcc(user_fmt[0], user_fmt[1], user_fmt[2], user_fmt[3]);
+        if (v4l2_ioctl(fd, VIDIOC_S_FMT, &fmt) == -1) {
+		    printf("VIDIOC_S_FMT IS ERROR! LINE:%d\n",__LINE__);
+		    return -1;
+		}
+		//查看帧格式
+		out_fmt.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+		if ( v4l2_ioctl(fd, VIDIOC_G_FMT, &out_fmt) == -1){
+			printf("VIDIOC_G_FMT IS ERROR! LINE:%d\n", __LINE__);
+			return -1;
+		}
+		printf("width:%d\nheight:%d\npixelformat:%c%c%c%c\n",
+            	out_fmt.fmt.pix.width, out_fmt.fmt.pix.height,
+            	out_fmt.fmt.pix.pixelformat &  0xFF,
+            	(out_fmt.fmt.pix.pixelformat >> 8) & 0xFF,
+            	(out_fmt.fmt.pix.pixelformat >> 16) & 0xFF,
+            	(out_fmt.fmt.pix.pixelformat >> 24) & 0xFF
+        );
+        printf("frame_size = %d\n", fmt.fmt.pix.sizeimage);
+        frame_size = fmt.fmt.pix.sizeimage;
+        return 0;
+    }
     for(; v4l2_ioctl(fd, VIDIOC_ENUM_FMT, &fmtdesc) == 0; ++fmtdesc.index) {
         //printf("\t%d.%s  %x\n",fmtdesc.index+1, fmtdesc.description, fmtdesc.pixelformat);
         v4l2_frmsizeenum framesize = {};
@@ -88,7 +131,7 @@ int init_device(void)
 		    		return -1;
 				}
 				//查看帧格式
-				fmt.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+				out_fmt.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
 				if ( v4l2_ioctl(fd, VIDIOC_G_FMT, &out_fmt) == -1){
 					printf("VIDIOC_G_FMT IS ERROR! LINE:%d\n", __LINE__);
 					return -1;
@@ -121,7 +164,7 @@ int init_device(void)
 		    		return -1;
 				}
 				//查看帧格式
-				fmt.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+				out_fmt.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
 				if ( v4l2_ioctl(fd, VIDIOC_G_FMT, &out_fmt) == -1){
 					printf("VIDIOC_G_FMT IS ERROR! LINE:%d\n", __LINE__);
 					return -1;
